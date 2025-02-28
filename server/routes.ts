@@ -53,7 +53,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         experienceLevel: parsed.data.experienceLevel ?? null,
         remote: parsed.data.remote ?? null,
         createdAt: new Date(),
-        views:parsed.data.views ?? null,
       });
 
       res.status(201).json(job);
@@ -68,7 +67,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (isNaN(jobId)) return res.status(400).json({ message: "Invalid job ID" });
 
     try {
-      await storage.incrementJobViews(jobId);
       const job = await storage.getJobById(jobId);
       if (!job) return res.sendStatus(404);
       res.json(job);
@@ -112,7 +110,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appliedAt: new Date(),
         coverLetter: parsed.data.coverLetter ?? null,
         interviewDate: new Date(),
-        updatedAt: new Date(),
       });
 
       res.status(201).json(application);
@@ -323,36 +320,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
-  // Add these new endpoints in registerRoutes.ts
-app.get("/api/analytics/overview", async (req, res) => {
-  if (!req.isAuthenticated() || req.user.role !== "employer") {
-    return res.sendStatus(403);
-  }
-
-  try {
-    const analytics = await storage.getEmployerAnalytics(req.user.id);
-    res.json(analytics);
-  } catch (error) {
-    console.error("Error fetching analytics:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
-
-app.get("/api/analytics/trends", async (req, res) => {
-  if (!req.isAuthenticated() || req.user.role !== "employer") {
-    return res.sendStatus(403);
-  }
-
-  const { days = "30" } = req.query;
-  
-  try {
-    const trends = await storage.getApplicationTrends(req.user.id, Number(days));
-    res.json(trends);
-  } catch (error) {
-    console.error("Error fetching trends:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
   const httpServer = createServer(app);
   return httpServer;
 }

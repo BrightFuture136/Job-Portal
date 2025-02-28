@@ -1,94 +1,27 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Download, TrendingUp, Users, Clock, UserCheck } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Download,
+  TrendingUp,
+  Users,
+  Clock,
+  UserCheck,
+  LineChart
+} from "lucide-react";
 
 export default function Analytics() {
-  const [timePeriod, setTimePeriod] = useState("30");
-  const [overview, setOverview] = useState({
-    totalViews: 0,
-    totalApplications: 0,
-    avgTimeToHire: 0,
-    conversionRate: 0,
-  });
-  const [trends, setTrends] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Fetch overview
-        const overviewRes = await fetch("/api/analytics/overview", {
-          credentials: "include", // Include cookies for authentication
-        });
-        if (!overviewRes.ok)
-          throw new Error(`Overview fetch failed: ${overviewRes.status}`);
-        const overviewData = await overviewRes.json();
-        console.log("Overview data:", overviewData);
-        setOverview(overviewData);
-
-        // Fetch trends
-        const trendsRes = await fetch(
-          `/api/analytics/trends?days=${timePeriod}`,
-          {
-            credentials: "include",
-          }
-        );
-        if (!trendsRes.ok)
-          throw new Error(`Trends fetch failed: ${trendsRes.status}`);
-        const trendsData = await trendsRes.json();
-        console.log("Trends data:", trendsData);
-        setTrends(trendsData);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        // setError(err.message || "Failed to load analytics data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [timePeriod]);
-
-  const handleExport = async () => {
-    window.location.href = "/api/applications/export";
-  };
-
-  if (loading) return <div>Loading analytics...</div>;
-  if (error) return <div>Error: {error}</div>;
-
   return (
     <div className="min-h-screen bg-background bg-gray-50">
       <Navigation />
+      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 space-y-4">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
             <div className="flex items-center gap-4">
-              <Select value={timePeriod} onValueChange={setTimePeriod}>
+              <Select defaultValue="30">
                 <SelectTrigger className="w-36">
                   <SelectValue placeholder="Time Period" />
                 </SelectTrigger>
@@ -99,7 +32,7 @@ export default function Analytics() {
                   <SelectItem value="365">Last year</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleExport}>
+              <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Export Report
               </Button>
@@ -117,12 +50,8 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview.totalViews.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Job posting views
-                </p>
+                <div className="text-2xl font-bold">2,834</div>
+                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
               </CardContent>
             </Card>
             <Card>
@@ -135,12 +64,8 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview.totalApplications}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Received applications
-                </p>
+                <div className="text-2xl font-bold">123</div>
+                <p className="text-xs text-muted-foreground">+12% from last month</p>
               </CardContent>
             </Card>
             <Card>
@@ -153,12 +78,8 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview.avgTimeToHire} days
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Average hiring time
-                </p>
+                <div className="text-2xl font-bold">15 days</div>
+                <p className="text-xs text-muted-foreground">-2 days from average</p>
               </CardContent>
             </Card>
             <Card>
@@ -171,36 +92,24 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview.conversionRate}%
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Applications to hires
-                </p>
+                <div className="text-2xl font-bold">4.3%</div>
+                <p className="text-xs text-muted-foreground">+0.5% from last month</p>
               </CardContent>
             </Card>
           </div>
 
+          {/* Charts Section */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Application Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trends}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="applications"
-                        stroke="#8884d8"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <div className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-lg">
+                  <div className="text-center">
+                    <LineChart className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mt-2">Application trends chart will be displayed here</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -209,11 +118,11 @@ export default function Analytics() {
                 <CardTitle>Source Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">
-                    Source distribution tracking requires additional
-                    implementation
-                  </p>
+                <div className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-lg">
+                  <div className="text-center">
+                    <LineChart className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mt-2">Source distribution chart will be displayed here</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

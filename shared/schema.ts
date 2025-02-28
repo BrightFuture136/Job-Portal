@@ -54,7 +54,6 @@ export const jobs = pgTable("jobs", {
   remote: boolean("remote"),
   skills: text("skills").array(), // Add this line
   createdAt: timestamp("created_at").defaultNow(),
-  views: integer("views").default(0),
 });
 
 export const applications = pgTable("applications", {
@@ -65,8 +64,8 @@ export const applications = pgTable("applications", {
   status: text("status", { enum: ["pending", "accepted", "rejected", "interview", "hired"] }).notNull(),
   coverLetter: text("cover_letter"),
   interviewDate: timestamp("interview_date") || null, // Add this line
-  appliedAt: timestamp("applied_at").defaultNow(),  
-  updatedAt: timestamp("updated_at").defaultNow(), // Add this line
+  appliedAt: timestamp("applied_at").defaultNow(),
+  
 });
 
 export const companyReviews = pgTable("company_reviews", {
@@ -115,7 +114,6 @@ export const emailNotifications = pgTable("email_notifications", {
   sentAt: timestamp("sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
 
 export const insertUserSchema = createInsertSchema(users, {
   education: z.array(z.object({

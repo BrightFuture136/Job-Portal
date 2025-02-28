@@ -2,7 +2,7 @@ import { User, Job, Application, InsertUser, ApplicationWithDetails } from "@sha
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 const MemoryStore = createMemoryStore(session);
@@ -28,14 +28,7 @@ export interface IStorage {
   updateApplicationInterviewDate(id: number, interviewDate: string): Promise<Application>;
   getApplicationById(id: number): Promise<Application | undefined>;
   getApplicationWithDetails(id: number): Promise<ApplicationWithDetails>,
-  getApplicationTrends(employerId: number, days: number): Promise<{date: string;applications: number;}[]> 
-  getEmployerAnalytics(employerId: number): Promise<{
-    totalViews: number;
-    totalApplications: number;
-    avgTimeToHire: number;
-    conversionRate: number;
-  }>
-  incrementJobViews(jobId: number): Promise<void> ,
+
   sessionStore: session.Store;
 }
 
@@ -133,9 +126,7 @@ export class PostgresStorage implements IStorage {
 
   async updateApplicationStatus(id: number, status: Application["status"]): Promise<Application> {
     const result = await db.update(schema.applications)
-      .set({ 
-        status,
-        updatedAt: new Date(),}) // Update the status
+      .set({ status }) // Update the status
       .where(eq(schema.applications.id, id))
       .returning();
     return result[0];
@@ -145,7 +136,6 @@ export class PostgresStorage implements IStorage {
       .set({ 
         interviewDate: new Date(interviewDate),
         status: "interview", // Update the status to "interview"
-        updatedAt: new Date(),
       })
       .where(eq(schema.applications.id, id))
       .returning();
@@ -165,83 +155,6 @@ export class PostgresStorage implements IStorage {
       seekerName: seeker?.username || "Unknown",
       jobTitle: job?.title || "Unknown",
     };
-  }
-  async getEmployerAnalytics(employerId: number): Promise<{
-    totalViews: number;
-    totalApplications: number;
-    avgTimeToHire: number;
-    conversionRate: number;
-  }> {
-    const applications = await this.getApplicationsByEmployer(employerId);
-    const jobs = await this.getJobsByEmployer(employerId);
-  
-    // Calculate total views (assuming views column exists or use a placeholder)
-    const totalViews = jobs.reduce((sum, job) => sum + (job.views || 0), 0);
-  
-    // Calculate average time to hire
-    const hiredApps = applications.filter(app => app.status === "hired");
-    const timeToHire = hiredApps.map(app => {
-      const applied = app.appliedAt ? new Date(app.appliedAt) : new Date();
-      // Use updatedAt if available, otherwise use current date
-      const hired = app.updatedAt ? new Date(app.updatedAt) : new Date();
-      return (hired.getTime() - applied.getTime()) / (1000 * 60 * 60 * 24); // Convert to days
-    });
-    const avgTimeToHire = timeToHire.length > 0 
-      ? timeToHire.reduce((sum, days) => sum + days, 0) / timeToHire.length 
-      : 0;
-  
-    // Calculate conversion rate
-    const conversionRate = applications.length > 0 
-      ? (hiredApps.length / applications.length) * 100 
-      : 0;
-  
-    return {
-      totalViews,
-      totalApplications: applications.length,
-      avgTimeToHire: Math.round(avgTimeToHire),
-      conversionRate: Number(conversionRate.toFixed(1))
-    };
-  }
-  
-  async getApplicationTrends(employerId: number, days: number): Promise<{
-    date: string;
-    applications: number;
-  }[]> {
-    const applications = await this.getApplicationsByEmployer(employerId);
-    
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-  
-    const filteredApps = applications.filter(app => 
-      app.appliedAt && new Date(app.appliedAt) >= cutoffDate
-    );
-  
-    const trendData = new Map<string, number>();
-    filteredApps.forEach(app => {
-      if (app.appliedAt) {
-        const date = new Date(app.appliedAt).toISOString().split('T')[0];
-        trendData.set(date, (trendData.get(date) || 0) + 1);
-      }
-    });
-  
-    const result = [];
-    const currentDate = new Date(cutoffDate);
-    while (currentDate <= new Date()) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      result.push({
-        date: dateStr,
-        applications: trendData.get(dateStr) || 0
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-  
-    return result;
-  }
-  // In storage.ts
-  async incrementJobViews(jobId: number): Promise<void> {
-    await db.update(schema.jobs)
-      .set({ views: sql`views + 1` })
-      .where(eq(schema.jobs.id, jobId));
   }
 }
 
