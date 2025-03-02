@@ -5,8 +5,11 @@ import rateLimit from "express-rate-limit";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertJobSchema, insertApplicationSchema } from "@shared/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
+import { db } from "./db";
+import * as schema from "../shared/schema";
 
-// // Rate limiting to prevent abuse
+// Rate limiting to prevent abuse
 // const limiter = rateLimit({
 //   windowMs: 15 * 60 * 1000, // 15 minutes
 //   max: 100, // Limit each IP to 100 requests per window
@@ -65,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/jobs/:id", async (req, res) => {
     const jobId = Number(req.params.id);
     if (isNaN(jobId)) return res.status(400).json({ message: "Invalid job ID" });
-
+  
     try {
       const job = await storage.getJobById(jobId);
       if (!job) return res.sendStatus(404);
@@ -81,44 +84,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated() || !req.user || req.user.role !== "seeker") {
       return res.sendStatus(403);
     }
-
+  
     const jobId = Number(req.params.id);
     if (isNaN(jobId)) {
       return res.status(400).json({ message: "Invalid job ID" });
     }
-
-    // Check if the job exists
+  
     const job = await storage.getJobById(jobId);
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
-
+  
     const parsed = insertApplicationSchema.safeParse({
       ...req.body,
       jobId,
       seekerId: req.user.id,
       status: "pending",
     });
-
+  
     if (!parsed.success) {
       return res.status(400).json(parsed.error);
     }
-
+  
     try {
       const application = await storage.createApplication({
         ...parsed.data,
         appliedAt: new Date(),
         coverLetter: parsed.data.coverLetter ?? null,
-        interviewDate: new Date(),
+        interviewDate:new Date(),
       });
-
-      res.status(201).json(application);
+  
+      res.status(201).json(application); // Return the created application with status
     } catch (error) {
       console.error("Error submitting application:", error);
       res.status(500).json({ message: "Internal Server Error" });
     }
   });
-
   app.get("/api/applications/employer", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== "employer") {
       return res.sendStatus(403);
@@ -317,6 +318,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(csv);
     } catch (error) {
       console.error("Error exporting applications:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.get("/api/analytics", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user || req.user.role !== "employer") {
+      return res.sendStatus(403);
+    }
+
+    const days = Number(req.query.days) || 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    try {
+      const applications = await storage.getApplicationsByEmployer(req.user.id);
+      const jobs = await storage.getJobsByEmployer(req.user.id);
+
+      const filteredApplications = applications.filter((app) => {
+        const appliedDate = app.appliedAt ? new Date(app.appliedAt) : new Date();
+        return appliedDate >= cutoffDate;
+      });
+      const totalViews = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.jobViews)
+      .where(inArray(schema.jobViews.jobId, jobs.map((job) => job.id)))
+      .then((res) => res[0]?.count || 0);
+
+
+      const statusDistribution = {
+        pending: filteredApplications.filter(app => app.status === "pending").length,
+        accepted: filteredApplications.filter(app => app.status === "accepted").length,
+        rejected: filteredApplications.filter(app => app.status === "rejected").length,
+        interview: filteredApplications.filter(app => app.status === "interview").length,
+        hired: filteredApplications.filter(app => app.status === "hired").length,
+      };
+      const hiredApps = filteredApplications.filter(app => app.status === "hired");
+          const avgTimeToHire = hiredApps.length > 0
+            ? hiredApps.reduce((sum, app) => {
+                const appliedDate = app.appliedAt ? new Date(app.appliedAt) : new Date();
+                const hiredDate = app.interviewDate ? new Date(app.interviewDate) : new Date();
+                return sum + (hiredDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24);
+              }, 0) / hiredApps.length
+            : 0;
+      const trends = Array.from({ length: days }, (_, i) => {
+        const date = new Date(cutoffDate);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        return {
+          date: dateStr,
+          applications: filteredApplications.filter((app) => {
+            const appliedDate = app.appliedAt ? new Date(app.appliedAt) : new Date();
+            return appliedDate.toISOString().split('T')[0] === dateStr;
+          }).length,
+        };
+      });
+
+      
+      res.json({
+        totalApplications: filteredApplications.length,
+        views: totalViews, // Replace shortlisted with views
+        interviewsScheduled: filteredApplications.filter(app => app.status === "interview").length,
+        hired: filteredApplications.filter(app => app.status === "hired").length,
+        avgTimeToHire: Math.round(avgTimeToHire), // Placeholder, update if needed
+        conversionRate: filteredApplications.length > 0 
+          ? Number(((filteredApplications.filter(app => app.status === "hired").length / filteredApplications.length) * 100).toFixed(1))
+          : 0,
+        trends,
+        jobCount: jobs.length,
+        statusDistribution,
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  
+  });
+
+
+
+  app.post("/api/jobs/:id/view", async (req, res) => {
+    const jobId = Number(req.params.id);
+    if (isNaN(jobId)) return res.status(400).json({ message: "Invalid job ID" });
+  
+    try {
+      const job = await storage.getJobById(jobId);
+      if (!job) return res.sendStatus(404);
+  
+      const userId = req.user?.id;
+      if (userId) {
+        // Check if the user has already viewed the job
+        const existingView = await db
+          .select()
+          .from(schema.jobViews)
+          .where(and(eq(schema.jobViews.jobId, jobId), eq(schema.jobViews.userId, userId)))
+          .limit(1);
+  
+        if (existingView.length === 0) {
+          // Insert a new view record
+          await db.insert(schema.jobViews).values({
+            jobId,
+            userId,
+            viewedAt: new Date(),
+          });
+        }
+      }
+  
+      // Fetch the total number of unique views for this job
+      const totalViews = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.jobViews)
+        .where(eq(schema.jobViews.jobId, jobId))
+        .then((res) => res[0]?.count || 0);
+  
+      res.status(200).json({ message: "View recorded", views: totalViews });
+    } catch (error) {
+      console.error("Error recording job view:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.get("/api/jobs/:id/has-applied", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user || req.user.role !== "seeker") {
+      return res.sendStatus(403);
+    }
+  
+    const jobId = Number(req.params.id);
+    if (isNaN(jobId)) {
+      return res.status(400).json({ message: "Invalid job ID" });
+    }
+  
+    try {
+      const applications = await storage.getApplicationsBySeeker(req.user.id);
+      const hasApplied = applications.some((app) => app.jobId === jobId);
+      res.json({ hasApplied });
+    } catch (error) {
+      console.error("Error checking application status:", error);
       res.status(500).json({ message: "Internal Server Error" });
     }
   });

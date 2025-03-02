@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -53,8 +53,9 @@ export const jobs = pgTable("jobs", {
   experienceLevel: text("experience_level"),
   remote: boolean("remote"),
   skills: text("skills").array(), // Add this line
-  createdAt: timestamp("created_at").defaultNow(),
-});
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  });
+
 
 export const applications = pgTable("applications", {
   id: serial("id").primaryKey(),
@@ -67,6 +68,15 @@ export const applications = pgTable("applications", {
   appliedAt: timestamp("applied_at").defaultNow(),
   
 });
+
+export const jobViews = pgTable("job_views", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  viewedAt: timestamp("viewed_at").defaultNow(),
+}, (table) => ({
+  uniqueJobUser: unique().on(table.jobId, table.userId), // Ensure one view per user per job
+}));
 
 export const companyReviews = pgTable("company_reviews", {
   id: serial("id").primaryKey(),
@@ -144,10 +154,15 @@ export const insertApplicationSchema = createInsertSchema(applications);
 export const insertCompanyReviewSchema = createInsertSchema(companyReviews);
 export const insertJobAlertSchema = createInsertSchema(jobAlerts);
 export const insertEmailNotificationSchema = createInsertSchema(emailNotifications);
+export const insertJobViewSchema = createInsertSchema(jobViews);
 
+export type JobView = typeof jobViews.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type Job = typeof jobs.$inferSelect;
+export type Job = typeof jobs.$inferSelect & {
+  views?: number; // Add this if it's not part of the schema
+  applicantsCount?: number; // Add this as a computed property
+};
 export type Application = typeof applications.$inferSelect;
 export type CompanyReview = typeof companyReviews.$inferSelect;
 export type JobAlert = typeof jobAlerts.$inferSelect;

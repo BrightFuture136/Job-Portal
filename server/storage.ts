@@ -2,7 +2,7 @@ import { User, Job, Application, InsertUser, ApplicationWithDetails } from "@sha
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 const MemoryStore = createMemoryStore(session);
@@ -69,7 +69,33 @@ export class PostgresStorage implements IStorage {
   
 
   async getJobs(): Promise<Job[]> {
-    return await db.select().from(schema.jobs);
+    // Fetch all jobs
+    const jobs = await db.select().from(schema.jobs);
+  
+    // For each job, calculate the total views and applicants count
+    const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
+      // Fetch the total number of unique views for this job
+      const views = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.jobViews)
+        .where(eq(schema.jobViews.jobId, job.id))
+        .then((res) => res[0]?.count || 0);
+  
+      // Fetch the total number of applicants for this job
+      const applicantsCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.applications)
+        .where(eq(schema.applications.jobId, job.id))
+        .then((res) => res[0]?.count || 0);
+  
+      return {
+        ...job,
+        views, // Add the calculated views
+        applicantsCount, // Add the calculated applicants count
+      };
+    }));
+  
+    return jobsWithCounts;
   }
 
   async getJobById(id: number): Promise<Job | undefined> {
@@ -96,7 +122,7 @@ export class PostgresStorage implements IStorage {
   async getApplicationsByEmployer(employerId: number): Promise<ApplicationWithDetails[]> {
     const jobs = await this.getJobsByEmployer(employerId);
     const applications = await Promise.all(
-      jobs.map((job) => this.getApplicationsByJob(job.id)),
+      jobs.map((job) => this.getApplicationsByJob(job.id))
     );
   
     const detailedApplications = await Promise.all(
@@ -107,9 +133,8 @@ export class PostgresStorage implements IStorage {
           ...app,
           seekerName: seeker?.username || "Unknown",
           jobTitle: job?.title || "Unknown",
-          appliedAt: app.appliedAt, // Add applied date
+          appliedAt: app.appliedAt,
           phoneNum: seeker?.phone || "Unknown",
-          
         };
       })
     );
