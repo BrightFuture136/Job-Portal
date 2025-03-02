@@ -7,14 +7,31 @@ export function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Check if user previously selected dark mode
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    
-    if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
-    }
+    // Check for dark mode on mount
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
+
+    // Callback for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === "attributes" &&
+          mutation.attributeName === "class"
+        ) {
+          const isDarkMode = document.documentElement.classList.contains("dark");
+          setIsDark(isDarkMode);
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const toggleTheme = () => {
