@@ -49,23 +49,72 @@
   }
 
   * {
-    @apply border-border;
+    @apply border-border !important;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground min-h-screen;
+    @apply font-sans antialiased bg-background text-foreground min-h-screen !important;
   }
 
   /* Responsive text sizes */
   h1 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
+    @apply text-2xl md:text-3xl lg:text-4xl text-foreground !important;
   }
   
   h2 {
-    @apply text-xl md:text-2xl lg:text-3xl;
+    @apply text-xl md:text-2xl lg:text-3xl text-foreground !important;
   }
   
   p {
-    @apply text-sm md:text-base;
+    @apply text-sm md:text-base text-foreground;
+  }
+
+  /* Dialog styles */
+  [role="dialog"],
+  .dialog,
+  dialog {
+    @apply bg-background text-foreground border-border rounded-[var(--radius)] !important;
+  }
+
+  /* Ensure dialog overlay/backdrop respects theme */
+  .dialog-overlay,
+  .dialog-backdrop {
+    @apply bg-black/50 dark:bg-gray-900/80 !important;
+  }
+
+  /* Dialog content */
+  .dialog-content {
+    @apply bg-background text-foreground shadow-lg !important;
+  }
+
+  /* Dialog header, body, footer */
+  .dialog-header,
+  .dialog-body,
+  .dialog-footer {
+    @apply text-foreground !important;
+  }
+
+  /* Buttons inside dialog */
+  .dialog-content button {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 border-border !important;
+  }
+
+  /* Input fields inside dialog */
+  .dialog-content input,
+  .dialog-content textarea {
+    @apply bg-background text-foreground border-border focus:ring-ring !important;
+  }
+
+  body.dialog-open header {
+    @apply hidden !important;
+  }
+
+  /* Ensure dialog styles apply correctly */
+  [data-radix-portal] [role="dialog"] {
+    @apply bg-background text-foreground border-border rounded-[var(--radius)] shadow-2xl !important;
+  }
+
+  [data-radix-portal] .dialog-overlay {
+    @apply fixed inset-0 bg-black/60 dark:bg-gray-900/80 backdrop-blur-sm !important;
   }
 }

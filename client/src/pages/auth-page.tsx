@@ -270,7 +270,7 @@ export default function AuthPage() {
                       render={({ field }) => (
                         <FormItem className="group">
                           <Label className="transition-colors duration-300 group-hover:text-primary">
-                            Role
+                            Are you
                           </Label>
                           <Select
                             onValueChange={field.onChange}

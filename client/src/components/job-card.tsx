@@ -36,6 +36,17 @@ export function JobCard({ job }: JobCardProps) {
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
 
+  // Add/remove body class when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add("dialog-open");
+    } else {
+      document.body.classList.remove("dialog-open");
+    }
+    // Cleanup on unmount
+    return () => document.body.classList.remove("dialog-open");
+  }, [open]);
+
   // Reset or invalidate queries when the user changes
   useEffect(() => {
     if (user) {
@@ -129,14 +140,12 @@ export function JobCard({ job }: JobCardProps) {
     <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow">
       <CardHeader className="flex-grow space-y-2">
         <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-lg line-clamp-2 text-gray-800">
-            {job.title}
-          </h3>
+          <h3 className="font-semibold text-lg line-clamp-2 ">{job.title}</h3>
           <Badge variant={typeVariant[job.type]}>
             {job.type.replace("-", " ")}
           </Badge>
         </div>
-        <div className="space-y-2 text-sm text-gray-600">
+        <div className="space-y-2 text-sm ">
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-blue-500" />
             <span>{job.company}</span>
@@ -162,14 +171,14 @@ export function JobCard({ job }: JobCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
-        <p className="text-sm text-gray-600 line-clamp-3">{job.description}</p>
-      </CardContent>
+      {/* <CardContent>
+        <p className="text-sm line-clamp-3">{job.description}</p>
+      </CardContent> */}
 
       <CardFooter className="border-t pt-4 flex flex-col gap-2">
         <Button
           variant="outline"
-          className="w-full gap-2 hover:bg-gray-100"
+          className="w-full gap-2"
           onClick={handleViewDetails}
         >
           <Eye className="h-4 w-4" />
@@ -204,7 +213,6 @@ export function JobCard({ job }: JobCardProps) {
         ) : null}
       </CardFooter>
 
-      {/* Dialog remains unchanged */}
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
@@ -216,24 +224,23 @@ export function JobCard({ job }: JobCardProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="fixed inset-4 bg-gray-100 rounded-xl shadow-2xl max-w-3xl mx-auto h-[92vh] overflow-y-auto p-8 flex flex-col"
+                  className="fixed inset-4 rounded-xl shadow-2xl max-w-3xl mx-auto h-[92vh] overflow-y-auto p-8 flex flex-col bg-background text-foreground"
                 >
                   <VisuallyHidden asChild>
                     <Dialog.Title>{job.title} Details</Dialog.Title>
                   </VisuallyHidden>
-
                   <Dialog.Close asChild>
                     <button
-                      className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300"
+                      className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-300"
                       aria-label="Close"
                     >
-                      <X className="h-6 w-6 text-gray-700" />
+                      <X className="h-6 w-6" />
                     </button>
                   </Dialog.Close>
 
                   <div className="space-y-8 flex-grow">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                      <h2 className="text-3xl font-bold tracking-tight">
                         {job.title}
                       </h2>
                       <Badge
@@ -243,46 +250,44 @@ export function JobCard({ job }: JobCardProps) {
                         {job.type.replace("-", " ")}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-6 text-sm text-gray-700">
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                    <div className="grid grid-cols-2 gap-6 text-sm">
+                      <div className="flex items-center gap-3 p-3 rounded-lg shadow-sm">
                         <Building2 className="h-6 w-6 text-blue-600" />
                         <span className="font-medium">{job.company}</span>
                       </div>
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                      <div className="flex items-center gap-3 p-3 rounded-lg shadow-sm">
                         <MapPin className="h-6 w-6 text-green-600" />
                         <span className="font-medium">{job.location}</span>
                       </div>
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                      <div className="flex items-center gap-3 p-3 rounded-lg shadow-sm">
                         <DollarSign className="h-6 w-6 text-yellow-600" />
                         <span className="font-medium">{job.salary}</span>
                       </div>
                       {isEmployerOwner && (
-                        <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                        <div className="flex items-center gap-3 p-3 rounded-lg shadow-sm">
                           <Eye className="h-6 w-6 text-purple-600" />
                           <span className="font-medium">{job.views} views</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm col-span-2">
+                      <div className="flex items-center gap-3 p-3 rounded-lg shadow-sm col-span-2">
                         <Users className="h-6 w-6 text-teal-600" />
                         <span className="font-medium">
                           {job.applicantsCount} applicants
                         </span>
                       </div>
                     </div>
-                    <div className="space-y-6 bg-white p-6 rounded-lg shadow-inner">
+                    <div className="space-y-6 p-6 rounded-lg shadow-inner">
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                        <h3 className="text-xl font-semibold mb-2">
                           Description
                         </h3>
-                        <p className="text-gray-600 leading-relaxed">
-                          {job.description}
-                        </p>
+                        <p className="leading-relaxed">{job.description}</p>
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                        <h3 className="text-xl font-semibold mb-2">
                           Additional Details
                         </h3>
-                        <div className="text-gray-600 space-y-2">
+                        <div className="space-y-2">
                           <p>
                             <strong>Application Deadline:</strong>{" "}
                             {job.applicationDeadline || "Not specified"}
@@ -307,7 +312,7 @@ export function JobCard({ job }: JobCardProps) {
                     <Dialog.Close asChild>
                       <Button
                         variant="outline"
-                        className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded-full"
+                        className="w-1/3 hover:bg-gray-300 font-semibold py-2 rounded-full"
                       >
                         Close
                       </Button>

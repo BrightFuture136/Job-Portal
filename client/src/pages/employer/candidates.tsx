@@ -209,68 +209,68 @@ export default function Candidates() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen ">
       <Navigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8 space-y-4">
-          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-4xl font-bold  tracking-tight">
             Candidate Management
           </h1>
-          <p className="text-gray-600">Review and manage your applicants</p>
+          <p className="">Review and manage your applicants</p>
 
           <div className="grid gap-6 md:grid-cols-4">
             {/* Stats Cards remain the same */}
-            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none ">
               <CardHeader className="space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium ">
                   Total Applications
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold ">
                   {stats.totalApplications}
                 </div>
-                <p className="text-xs text-gray-500">+15% from last month</p>
+                <p className="text-xs ">+15% from last month</p>
               </CardContent>
             </Card>
             {/* ... (other stats cards remain the same) */}
-            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none ">
               <CardHeader className="space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium ">
                   Shortlisted
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold ">
                   {stats.shortlisted}
                 </div>
-                <p className="text-xs text-gray-500">20 this week</p>
+                <p className="text-xs ">20 this week</p>
               </CardContent>
             </Card>
-            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none ">
               <CardHeader className="space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium ">
                   Interviews Scheduled
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold ">
                   {stats.interviewsScheduled}
                 </div>
-                <p className="text-xs text-gray-500">Next: Tomorrow</p>
+                <p className="text-xs ">Next: Tomorrow</p>
               </CardContent>
             </Card>
-            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-300 border-none ">
               <CardHeader className="space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
+                <CardTitle className="text-sm font-medium ">
                   Hired
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold ">
                   {stats.hired}
                 </div>
-                <p className="text-xs text-gray-500">This quarter</p>
+                <p className="text-xs ">This quarter</p>
               </CardContent>
             </Card>
           </div>
@@ -288,7 +288,7 @@ export default function Candidates() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-32 bg-white border-gray-300 hover:border-indigo-500 transition-all duration-200">
+                <SelectTrigger className="w-full sm:w-32 border-gray-300 hover:border-indigo-500 transition-all duration-200">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -304,7 +304,7 @@ export default function Candidates() {
             <Button
               variant="outline"
               onClick={handleExport}
-              className="w-full sm:w-auto bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+              className="w-full sm:w-auto border-gray-300 hover:border-indigo-500 transition-all duration-200"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -316,25 +316,25 @@ export default function Candidates() {
           {filteredApplications.map((app) => (
             <Card
               key={app.id}
-              className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white"
+              className="shadow-md hover:shadow-lg transition-all duration-300 border-none "
             >
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-800 hover:text-indigo-600 transition-colors duration-200">
+                    <h3 className="font-semibold  hover:text-indigo-600 transition-colors duration-200">
                       {app.seekerName || "Unknown Candidate"}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm ">
                       {app.jobTitle || "Unknown Job"}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm ">
                       <CalendarIcon className="h-4 w-4" />
                       Applied {new Date(app.appliedAt).toLocaleDateString()}
                     </div>
                     {app.interviewDate &&
                       (app.status === "interview" ||
                         app.status === "accepted") && (
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 text-sm ">
                           <CalendarIcon className="h-4 w-4" />
                           Interview:{" "}
                           {new Date(app.interviewDate).toLocaleDateString()}
@@ -346,7 +346,7 @@ export default function Candidates() {
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(app.resumeUrl, "_blank")}
-                      className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                      className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                     >
                       <User className="h-4 w-4 mr-1" />
                       View Profile
@@ -359,7 +359,7 @@ export default function Candidates() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleStatusChange(app.id, "accepted")}
-                          className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                          className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                         >
                           <Check className="h-4 w-4 mr-1" />
                           Accept
@@ -383,7 +383,7 @@ export default function Candidates() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenScheduleDialog(app.id)}
-                          className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                          className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                         >
                           <CalendarIcon className="h-4 w-4 mr-1" />
                           Reschedule
@@ -393,18 +393,18 @@ export default function Candidates() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                              className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                             >
                               Interviewing
                               <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                          <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                             {/* <DropdownMenuItem
                               onClick={() =>
                                 handleStatusChange(app.id, "accepted")
                               }
-                              className="px-3 py-2 hover:bg-indigo-50 rounded cursor-pointer text-gray-700"
+                              className="px-3 py-2 hover:bg-indigo-50 rounded cursor-pointer"
                             >
                               Accept
                             </DropdownMenuItem> */}
@@ -412,7 +412,7 @@ export default function Candidates() {
                               onClick={() =>
                                 handleStatusChange(app.id, "rejected")
                               }
-                              className="px-3 py-2 hover:bg-red-50 rounded cursor-pointer text-gray-700"
+                              className="px-3 py-2 hover:bg-red-50 rounded cursor-pointer"
                             >
                               Reject
                             </DropdownMenuItem>
@@ -437,7 +437,7 @@ export default function Candidates() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenScheduleDialog(app.id)}
-                          className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                          className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                         >
                           <CalendarIcon className="h-4 w-4 mr-1" />
                           {app.interviewDate ? "Reschedule" : "Schedule"}
@@ -447,18 +447,18 @@ export default function Candidates() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                              className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                             >
                               Accepted
                               <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                          <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                             <DropdownMenuItem
                               onClick={() =>
                                 handleStatusChange(app.id, "rejected")
                               }
-                              className="px-3 py-2 hover:bg-red-50 rounded cursor-pointer text-gray-700"
+                              className="px-3 py-2 hover:bg-red-50 rounded cursor-pointer"
                             >
                               Reject
                             </DropdownMenuItem>
@@ -482,18 +482,18 @@ export default function Candidates() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 text-gray-700 hover:text-indigo-600 transition-all duration-200"
+                            className="group hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 hover:text-indigo-600 transition-all duration-200"
                           >
                             Rejected
                             <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                        <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                           <DropdownMenuItem
                             onClick={() =>
                               handleStatusChange(app.id, "accepted")
                             }
-                            className="px-3 py-2 hover:bg-indigo-50 rounded cursor-pointer text-gray-700"
+                            className="px-3 py-2 hover:bg-indigo-50 rounded cursor-pointer"
                           >
                             Accept
                           </DropdownMenuItem>
@@ -507,7 +507,7 @@ export default function Candidates() {
                         variant="outline"
                         size="sm"
                         disabled
-                        className="bg-gray-100 text-gray-500 cursor-not-allowed"
+                        className="bg-gray-100  cursor-not-allowed"
                       >
                         Hired
                       </Button>
@@ -530,16 +530,16 @@ export default function Candidates() {
             }
           }}
         >
-          <DialogContent className="sm:max-w-md bg-white shadow-xl rounded-lg">
+          <DialogContent className="sm:max-w-md  shadow-xl rounded-lg">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-semibold text-gray-900">
+              <DialogTitle className="text-2xl font-semibold ">
                 {selectedApplicationId &&
                 applications?.find((app) => app.id === selectedApplicationId)
                   ?.interviewDate
                   ? "Reschedule Interview"
                   : "Schedule Interview"}
               </DialogTitle>
-              <DialogDescription className="text-gray-600">
+              <DialogDescription className="">
                 Select a date for the interview with{" "}
                 {selectedApplicationId &&
                   applications?.find((app) => app.id === selectedApplicationId)
@@ -562,7 +562,7 @@ export default function Candidates() {
               <Button
                 variant="outline"
                 onClick={() => setIsScheduleDialogOpen(false)}
-                className="bg-white hover:bg-gray-100 border-gray-300 hover:border-gray-400 text-gray-700 transition-all duration-200"
+                className=" hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-all duration-200"
               >
                 Cancel
               </Button>

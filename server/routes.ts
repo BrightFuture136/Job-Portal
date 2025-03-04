@@ -8,6 +8,11 @@ import { insertJobSchema, insertApplicationSchema } from "@shared/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "../shared/schema";
+import twilio from "twilio";
+const client = twilio("AC8d161734a4954ca405a103aa3f540a15", "4197f3e95b9f077e01333855b9197ce1"); // Replace with your Twilio credentials
+
+// Use your Twilio trial credentials
+
 
 // Rate limiting to prevent abuse
 // const limiter = rateLimit({
@@ -455,6 +460,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking application status:", error);
       res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+
+  app.post("/api/applications/send-sms", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "employer") {
+      return res.sendStatus(403);
+    }
+  
+    const { jobId } = req.body;
+  
+    try {
+      let applications = await storage.getAcceptedApplicationsByEmployer(req.user.id);
+      if (jobId) {
+        applications = applications.filter((app) => app.jobId === Number(jobId));
+      }
+      if (!applications.length) {
+        return res.status(404).json({ message: "No accepted applicants found" });
+      }
+  
+      const validApplications = applications.filter((app) => app.phoneNum);
+      if (!validApplications.length) {
+        return res.status(400).json({ message: "No accepted applicants have phone numbers" });
+      }
+  
+      const messages = validApplications.map((app) => {
+        const message = `Dear ${app.seekerName}, you have been shortlisted for ${app.jobTitle}.`;
+        // For demo: Replace app.phoneNum with a verified number or log instead
+        const demoPhoneNumber = "+12345678901"; // Replace with your verified number
+        console.log(`Simulating SMS to ${app.phoneNum || demoPhoneNumber}: ${message}`);
+        
+        // Uncomment to send real SMS in trial mode (costs trial credits)
+        return client.messages.create({
+          body: message,
+          from: "+15172003432", // e.g., +12345678901 from Twilio
+          to:"+251904859055", // Use a verified number for demo
+        });
+        
+        // For pure simulation without sending, comment the above and use:
+        // return Promise.resolve({ sid: "SIMULATED_SID", to: app.phoneNum, body: message });
+      });
+  
+      const results = await Promise.all(messages);
+      res.json({
+        message: `SMS sent to ${validApplications.length} accepted applicants`,
+        results, // Optional: Return Twilio response for debugging
+      });
+    } catch (error) {
+      console.error("Error sending SMS:", error);
+      res.status(500).json({ message: "Failed to send SMS" });
     }
   });
   const httpServer = createServer(app);

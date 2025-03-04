@@ -28,6 +28,7 @@ export interface IStorage {
   updateApplicationInterviewDate(id: number, interviewDate: string): Promise<Application>;
   getApplicationById(id: number): Promise<Application | undefined>;
   getApplicationWithDetails(id: number): Promise<ApplicationWithDetails>,
+  getAcceptedApplicationsByEmployer(employerId: number): Promise<ApplicationWithDetails[]>,
 
   sessionStore: session.Store;
 }
@@ -179,7 +180,13 @@ export class PostgresStorage implements IStorage {
       ...application,
       seekerName: seeker?.username || "Unknown",
       jobTitle: job?.title || "Unknown",
+      
     };
+  }
+  
+  async getAcceptedApplicationsByEmployer(employerId: number): Promise<ApplicationWithDetails[]> {
+    const allApps = await this.getApplicationsByEmployer(employerId);
+    return allApps.filter(app => app.status === "accepted");
   }
 }
 

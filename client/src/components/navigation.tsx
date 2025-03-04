@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,18 +11,18 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  BriefcaseIcon, 
-  Users, 
-  BarChart, 
-  Settings, 
-  Building2, 
-  Bell, 
-  UserCircle, 
+import {
+  LayoutDashboard,
+  BriefcaseIcon,
+  Users,
+  BarChart,
+  Settings,
+  Building2,
+  Bell,
+  UserCircle,
   MessageSquare,
   Menu,
-  X
+  X,
 } from "lucide-react";
 import { ResponsiveContainer } from "./ResponsiveContainer";
 import { cn } from "@/lib/utils";
@@ -56,8 +55,9 @@ export function Navigation() {
       icon: <BriefcaseIcon className="w-4 h-4 mr-2" />,
     },
     {
-      href: user.role === "employer" ? "/employer/applications" : "/seeker/profile",
-      label: user.role === "employer" ? "Applications" : "My Profile",
+      href:
+        user.role === "employer" ? "/employer/candidates" : "/seeker/profile",
+      label: user.role === "employer" ? "Candidates" : "My Profile",
       icon: <Users className="w-4 h-4 mr-2" />,
     },
     {
@@ -66,14 +66,24 @@ export function Navigation() {
       icon: <BarChart className="w-4 h-4 mr-2" />,
     },
     {
-      href: user.role === "employer" ? "/employer/messages" : "/seeker/companies",
+      href:
+        user.role === "employer" ? "/employer/messages" : "/seeker/companies",
       label: user.role === "employer" ? "Messages" : "Companies",
       icon: <MessageSquare className="w-4 h-4 mr-2" />,
     },
     {
-      href: user.role === "employer" ? "/employer/settings" : "/seeker/settings",
-      label: "Settings",
-      icon: <Settings className="w-4 h-4 mr-2" />,
+      href:
+        user.role === "employer" ? "/employer/Branding" : "",
+      label: user.role === "employer" ? "Branding" : "",
+      icon:
+        user.role === "employer" ? <Building2 className="w-4 h-4 mr-2" /> : "",
+    },
+    {
+      href:
+        user.role === "employer" ? "/employer/settings" : "/seeker/settings",
+      label: user.role === "employer" ? "Settings" : "",
+      icon:
+        user.role === "employer" ? <Settings className="w-4 h-4 mr-2" /> : "",
     },
   ];
 
@@ -95,8 +105,8 @@ export function Navigation() {
   const renderMobileNavItems = () => {
     return navItems.map((item, index) => (
       <Link key={index} href={item.href}>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start text-left mb-1 font-normal"
           onClick={() => setMobileMenuOpen(false)}
         >
@@ -127,9 +137,7 @@ export function Navigation() {
           {!isMobile && (
             <div className="flex-1 flex justify-center">
               <NavigationMenu>
-                <NavigationMenuList>
-                  {renderNavItems()}
-                </NavigationMenuList>
+                <NavigationMenuList>{renderNavItems()}</NavigationMenuList>
               </NavigationMenu>
             </div>
           )}
@@ -137,15 +145,15 @@ export function Navigation() {
           {/* Right side - theme toggle, notifications, profile, logout */}
           <div className="flex items-center space-x-2">
             <ThemeToggle />
-            
+
             <Button variant="ghost" size="icon">
               <Bell className="w-5 h-5" />
             </Button>
-            
+
             <Button variant="ghost" size="icon">
               <UserCircle className="w-5 h-5" />
             </Button>
-            
+
             {!isMobile && (
               <Button
                 variant="ghost"
@@ -160,24 +168,27 @@ export function Navigation() {
             {isMobile && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    aria-label="Toggle menu"
-                  >
+                  <Button variant="ghost" size="icon" aria-label="Toggle menu">
                     <Menu className="w-6 h-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[85%] max-w-sm sm:max-w-md">
+                <SheetContent
+                  side="right"
+                  className="w-[85%] max-w-sm sm:max-w-md"
+                >
                   <div className="py-4">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-2">
                         <Building2 className="w-6 h-6" />
                         <span className="font-bold text-xl">DreamJobs</span>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
+                      {/* <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
                         <X className="w-5 h-5" />
-                      </Button>
+                      </Button> */}
                     </div>
                     <div className="space-y-1">
                       {renderMobileNavItems()}

@@ -262,15 +262,15 @@ export default function Applications() {
     );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Navigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-4xl font-bold  tracking-tight">
             Job Applications for{" "}
             <span className="text-indigo-600">{jobTitle}</span>
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 ">
             Manage and review candidate applications
           </p>
         </div>
@@ -283,7 +283,7 @@ export default function Applications() {
             className="w-full sm:w-64 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-200"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48 bg-white border-gray-300 hover:border-indigo-500 transition-all duration-200">
+            <SelectTrigger className="w-full sm:w-48  border-gray-300 hover:border-indigo-500 transition-all duration-200">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -317,7 +317,7 @@ export default function Applications() {
 
         {!filteredApplications || filteredApplications.length === 0 ? (
           <Card className="shadow-lg border-none">
-            <CardContent className="py-12 text-center text-gray-500">
+            <CardContent className="py-12 text-center ">
               No applications found.
             </CardContent>
           </Card>
@@ -326,17 +326,17 @@ export default function Applications() {
             {paginatedApplications?.map((app) => (
               <Card
                 key={app.id}
-                className="shadow-md hover:shadow-lg transition-all duration-300 border-none bg-white"
+                className="shadow-md hover:shadow-lg transition-all duration-300 border-none "
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-semibold text-gray-800 transition-all duration-200">
                       <span
                         onClick={() => setSelectedApplication(app)}
-                        className="cursor-pointer inline-block px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-800 hover:text-gray-900 hover:scale-105"
+                        className="cursor-pointer inline-block px-2 py-1 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-800 hover: hover:scale-105"
                       >
                         {app.jobTitle}
-                        <span className="ml-2 text-xs text-gray-500 font-normal">
+                        <span className="ml-2 text-xs  font-normal">
                           Click to view
                         </span>
                       </span>
@@ -378,7 +378,7 @@ export default function Applications() {
                     </a>
                   </div>
 
-                  <div className="text-sm text-gray-600 space-y-1">
+                  <div className="text-sm  space-y-1">
                     <p>
                       <strong>Applicant:</strong> {app.seekerName}
                     </p>
@@ -403,13 +403,13 @@ export default function Applications() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                            className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                           >
                             Change Status
                             <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                        <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                           <DropdownMenuItem
                             onClick={() =>
                               handleStatusChange(app.id, "accepted")
@@ -436,7 +436,7 @@ export default function Applications() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenScheduleDialog(app.id)}
-                          className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                          className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                         >
                           <CalendarIcon className="h-4 w-4 mr-1" />
                           Reschedule
@@ -446,13 +446,13 @@ export default function Applications() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                              className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                             >
                               Change Status
                               <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                          <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                             <DropdownMenuItem
                               onClick={() =>
                                 handleStatusChange(app.id, "rejected")
@@ -481,7 +481,7 @@ export default function Applications() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenScheduleDialog(app.id)}
-                          className="bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                          className=" hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                         >
                           <CalendarIcon className="h-4 w-4 mr-1" />
                           {app.interviewDate ? "Reschedule" : "Schedule"}
@@ -491,13 +491,13 @@ export default function Applications() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                              className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                             >
                               Change Status
                               <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                          <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                             <DropdownMenuItem
                               onClick={() =>
                                 handleStatusChange(app.id, "rejected")
@@ -525,13 +525,13 @@ export default function Applications() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="group bg-white hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
+                            className="group  hover:bg-indigo-50 border-gray-300 hover:border-indigo-500 transition-all duration-200"
                           >
                             Change Status
                             <span className="ml-2 h-0 w-0 border-x-4 border-x-transparent border-t-4 border-t-gray-500 group-hover:border-t-indigo-500 transition-colors duration-200" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="bg-white shadow-lg border rounded-md p-1">
+                        <DropdownMenuContent className=" shadow-lg border rounded-md p-1">
                           <DropdownMenuItem
                             onClick={() =>
                               handleStatusChange(app.id, "accepted")
@@ -549,7 +549,7 @@ export default function Applications() {
                         variant="outline"
                         size="sm"
                         disabled
-                        className="bg-gray-100 text-gray-500 cursor-not-allowed"
+                        className="bg-gray-100  cursor-not-allowed"
                       >
                         Hired
                       </Button>
@@ -611,7 +611,7 @@ export default function Applications() {
         {/* Application Details Modal */}
         <Dialog
           open={!!selectedApplication}
-          onOpenChange={(open) => !open && setSelectedApplication(null)}
+          onOpenChange={(open: any) => !open && setSelectedApplication(null)}
         >
           <DialogContent className="sm:max-w-md bg-gradient-to-br from-gray-50 to-gray-100 shadow-xl rounded-xl border border-gray-200 overflow-hidden">
             <DialogHeader className="bg-gray-700 p-6 text-white">
@@ -629,10 +629,10 @@ export default function Applications() {
                 {/* Job Title */}
                 <div className="flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Briefcase className="h-4 w-4 text-gray-600" />
+                    <Briefcase className="h-4 w-4 " />
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium ">
                       Job Title
                     </span>
                     <p className="mt-1 text-base font-semibold text-gray-800">
@@ -643,10 +643,10 @@ export default function Applications() {
                 {/* seekerName */}
                 <div className="flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Briefcase className="h-4 w-4 text-gray-600" />
+                    <Briefcase className="h-4 w-4 " />
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium ">
                       Job Title
                     </span>
                     <p className="mt-1 text-base font-semibold text-gray-800">
@@ -658,10 +658,10 @@ export default function Applications() {
                 {/* Status */}
                 <div className="flex items-center gap-3 animate-in slide-in-from-top-3 duration-300">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Bookmark className="h-4 w-4 text-gray-600" />
+                    <Bookmark className="h-4 w-4 " />
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium ">
                       Status
                     </span>
                     <Badge
@@ -689,10 +689,10 @@ export default function Applications() {
                 {/* Phone Number */}
                 <div className="flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Phone className="h-4 w-4 text-gray-600" />
+                    <Phone className="h-4 w-4 " />
                   </div>
                   <div>
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium ">
                       Phone Number
                     </span>
                     <p className="mt-1 text-base font-semibold text-gray-800">
@@ -708,13 +708,13 @@ export default function Applications() {
                 {/* Cover Letter */}
                 <div className="flex items-start gap-3 animate-in slide-in-from-top-5 duration-300">
                   <div className="flex-shrink-0 w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    <FileText className="h-4 w-4 text-gray-600" />
+                    <FileText className="h-4 w-4 " />
                   </div>
                   <div className="w-full">
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium ">
                       Cover Letter
                     </span>
-                    <p className="mt-1 text-sm text-gray-700 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                    <p className="mt-1 text-sm text-gray-700  p-3 rounded-lg shadow-sm border border-gray-200">
                       {selectedApplication.coverLetter || (
                         <span className="text-gray-400 italic">
                           Not provided
@@ -746,7 +746,7 @@ export default function Applications() {
         {/* Schedule Interview Dialog */}
         <Dialog
           open={isScheduleDialogOpen}
-          onOpenChange={(open) => {
+          onOpenChange={(open: any) => {
             if (!open) {
               setIsScheduleDialogOpen(false);
               setInterviewDate(undefined);
@@ -754,16 +754,16 @@ export default function Applications() {
             }
           }}
         >
-          <DialogContent className="sm:max-w-md bg-white shadow-xl rounded-lg">
+          <DialogContent className="sm:max-w-md  shadow-xl rounded-lg">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-semibold text-gray-900">
+              <DialogTitle className="text-2xl font-semibold ">
                 {schedulingAppId &&
                 applications?.find((app) => app.id === schedulingAppId)
                   ?.interviewDate
                   ? "Reschedule Interview"
                   : "Schedule Interview"}
               </DialogTitle>
-              <DialogDescription className="text-gray-600">
+              <DialogDescription className="">
                 Select a date for the interview with{" "}
                 {schedulingAppId &&
                   applications?.find((app) => app.id === schedulingAppId)
@@ -786,7 +786,7 @@ export default function Applications() {
               <Button
                 variant="outline"
                 onClick={() => setIsScheduleDialogOpen(false)}
-                className="bg-white hover:bg-gray-100 border-gray-300 hover:border-gray-400 text-gray-700 transition-all duration-200"
+                className=" hover:bg-gray-100 border-gray-300 hover:border-gray-400 text-gray-700 transition-all duration-200"
               >
                 Cancel
               </Button>
