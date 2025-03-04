@@ -9,7 +9,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "../shared/schema";
 import twilio from "twilio";
-const client = twilio("AC8d161734a4954ca405a103aa3f540a15", "4197f3e95b9f077e01333855b9197ce1"); // Replace with your Twilio credentials
+const client = twilio("", ""); // Replace with your Twilio credentials
 
 // Use your Twilio trial credentials
 
