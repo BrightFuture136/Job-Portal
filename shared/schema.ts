@@ -63,7 +63,7 @@ export const applications = pgTable("applications", {
   seekerId: integer("seeker_id").notNull(),
   resumeUrl: text("resume_url").notNull(),
   status: text("status", { enum: ["pending", "accepted", "rejected", "interview", "hired"] }).notNull(),
-  coverLetter: text("cover_letter"),
+  coverLetter: text("cover_letter").notNull(),
   interviewDate: timestamp("interview_date") || null, // Add this line
   appliedAt: timestamp("applied_at").defaultNow(),
   
