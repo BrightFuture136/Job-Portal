@@ -14,7 +14,7 @@ import path from "path";
 import multer from "multer";
 import { fileURLToPath } from 'url';
 import pdfParse from 'pdf-parse';
-const client = twilio("AC8d161734a4954ca405a103aa3f540a15", "4197f3e95b9f077e01333855b9197ce1"); // Replace with your Twilio credentials
+const client = twilio("", ""); // Replace with your Twilio credentials
 
 // interface MulterRequest extends Request {
 //   file?: Express.Multer.File;
