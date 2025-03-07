@@ -66,7 +66,7 @@ export const applications = pgTable("applications", {
   coverLetter: text("cover_letter").notNull(),
   interviewDate: timestamp("interview_date") || null, // Add this line
   appliedAt: timestamp("applied_at").defaultNow(),
-  
+  atsScore: integer("ats_score"), // Should be here
 });
 
 export const jobViews = pgTable("job_views", {

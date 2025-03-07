@@ -112,7 +112,7 @@ export class PostgresStorage implements IStorage {
     const result = await db.insert(schema.applications).values({
       ...application,
       status: "pending", // Default status
-      coverLetter: application.coverLetter || null, // Ensure coverLetter is not undefined
+      coverLetter: application.coverLetter ?? null, // Ensure coverLetter is not undefined
     }).returning();
     return result[0];
   }

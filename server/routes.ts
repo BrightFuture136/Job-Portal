@@ -1,4 +1,4 @@
-import type { Express ,Request} from "express";
+import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import cors from "cors";
 import { setupAuth } from "./auth";
@@ -14,11 +14,14 @@ import path from "path";
 import multer from "multer";
 import { fileURLToPath } from 'url';
 import pdfParse from 'pdf-parse';
+import nlp from "compromise";
+import fuzzy from "fuzzy";
 const client = twilio("AC8d161734a4954ca405a103aa3f540a15", "4197f3e95b9f077e01333855b9197ce1"); // Replace with your Twilio credentials
 
-// interface MulterRequest extends Request {
-//   file?: Express.Multer.File;
-// }
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
+
 // Rate limiting to prevent abuse
 // const limiter = rateLimit({
 //   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -26,117 +29,144 @@ const client = twilio("AC8d161734a4954ca405a103aa3f540a15", "4197f3e95b9f077e013
 //   message: "Too many requests from this IP, please try again later.",
 // });
 
+// Configure multer for file uploads
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configure multer for file uploads
 const upload = multer({
-  dest: "uploads/", // Temporary storage directory
+  dest: "uploads/",
   fileFilter: (req, file, cb) => {
     if (file.mimetype !== "application/pdf") {
       return cb(new Error("Only PDF files are allowed"));
     }
     cb(null, true);
   },
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
+const skillsDictionary: { [key: string]: string } = {
+  "js": "javascript",
+  "javascript": "javascript",
+  "node": "nodejs",
+  "node.js": "nodejs",
+  "reactjs": "react",
+  "react.js": "react",
+  "py": "python",
+  "python": "python",
+  "sql": "sql",
+  "db": "database",
+  "html5": "html",
+  "css3": "css",
+  // Add more mappings as needed
+};
 
+const normalizeSkill = (skill: string) => skillsDictionary[skill.toLowerCase()] || skill.toLowerCase();
 
-// Function to extract text from a PDF resume
+// Extract text from a PDF resume
 async function extractTextFromResume(resumeUrl: string): Promise<string> {
   try {
-    const resumePath = path.join(__dirname, "../", resumeUrl); // Adjust based on your server's file structure
+    const resumePath = path.join(__dirname, "../", resumeUrl);
     const buffer = await fs.readFile(resumePath);
     const pdfData = await pdfParse(buffer);
     return pdfData.text.toLowerCase();
   } catch (error) {
     console.error("Error extracting resume text:", error);
-    return ""; // Return empty string on failure
+    return "";
   }
 }
 
-// ATS Resume Parser
+// Enhanced ATS Resume Parser with NLP
 async function extractResumeData(resumeUrl: string): Promise<{ skills: string[]; experience: { title: string; years: number }[] }> {
   const text = await extractTextFromResume(resumeUrl);
+  const doc = nlp(text);
 
-  // Skills extraction
-  const skillsSection = text.match(/skills:?\s*([\s\S]+?)(?=\n\n|\nexperience|\neducation|$)/i)?.[1] || "";
-  const skills = skillsSection
-    .split(/[\n,]+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 2 && !s.match(/^\d+$/))
-    .map(s => s.replace(/[^a-z0-9\s]/gi, ''));
+  // Extract skills using NLP
+  const skillsSection = text.match(/(?:skills|technical skills|proficiencies):?\s*([\s\S]+?)(?=\n\n|\n(?:experience|education|work history)|$)/i)?.[1] || text;
+  const skillsDoc = nlp(skillsSection);
+  const skills = skillsDoc
+    .topics()
+    .out('array')
+    .map(normalizeSkill)
+    .filter((s: string) => s.length > 2 && !s.match(/^\d+$/))
+    .filter((s: any, i: any, arr: string | any[]) => arr.indexOf(s) === i); // Remove duplicates
 
-  // Experience extraction
-  const experienceSection = text.match(/experience:?\s*([\s\S]+?)(?=\n\n|\neducation|\nskills|$)/i)?.[1] || "";
-  const experienceLines = experienceSection.split("\n").filter(line => line.trim());
-  const experience: { title: string; years: number }[] = [];
-
-  for (const line of experienceLines) {
-    const titleMatch = line.match(/([a-z\s]+)(?:\s*\d{4}\s*-\s*\d{4}|\s*\d{4}\s*-\s*present)?/i);
+  // Extract experience with NLP
+  const experienceSection = text.match(/(?:experience|work experience|employment history):?\s*([\s\S]+?)(?=\n\n|\n(?:education|skills)|$)/i)?.[1] || text;
+  const experienceLines = experienceSection.split("\n").filter(line => line.match(/\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*present/i));
+  const experience: { title: string; years: number }[] = experienceLines.map(line => {
+    const docLine = nlp(line);
+    const title = docLine.organizations().out('array')[0] || docLine.topics().out('array')[0] || line.split(/\d{4}/)[0]?.trim() || "Unknown";
     const dateMatch = line.match(/(\d{4})\s*-\s*(\d{4}|present)/i);
-
-    if (titleMatch) {
-      const title = titleMatch[1].trim();
-      let years = 0;
-      if (dateMatch) {
-        const startYear = parseInt(dateMatch[1], 10);
-        const endYear = dateMatch[2] === "present" ? new Date().getFullYear() : parseInt(dateMatch[2], 10);
-        years = endYear - startYear;
-      }
-      experience.push({ title, years: Math.max(years, 0) });
+    let years = 0;
+    if (dateMatch) {
+      const startYear = parseInt(dateMatch[1], 10);
+      const endYear = dateMatch[2] === "present" ? new Date().getFullYear() : parseInt(dateMatch[2], 10);
+      years = endYear - startYear;
     }
-  }
+    return { title, years: Math.max(years, 0) };
+  });
 
   return { skills: skills || [], experience };
 }
 
-// ATS Scoring Function
-async function calculateATSScore(job: schema.Job, application: schema.Application): Promise<number> {
+// Enhanced ATS Scoring Function
+async function calculateATSScore(job: schema.Job, application: Partial<schema.Application> & { seekerId: number; resumeUrl: string }): Promise<number>{
   try {
+    if (application.atsScore !== undefined && application.atsScore !== null) return application.atsScore;
+
     const resumeData = await extractResumeData(application.resumeUrl);
     const seeker = await db.select().from(schema.users).where(eq(schema.users.id, application.seekerId)).limit(1).then(res => res[0]);
 
-    const jobSkills = (job.skills || []).map(s => s.toLowerCase());
+    const jobSkills = (job.skills || []).map(normalizeSkill); // Already safe with || []
     const jobRequirements = (job.requirements || []).map(r => r.toLowerCase());
     const jobExperienceLevel = job.experienceLevel?.toLowerCase();
+    const jobContext = job.description.toLowerCase().match(/(software|marketing|finance|engineering)/)?.[0] || "";
+    const isTechnical = job.title.toLowerCase().includes("engineer") || (job.skills?.length ?? 0) > 5; // Fixed line
 
-    const resumeSkills = resumeData.skills.map(s => s.toLowerCase());
-    const seekerSkills = (seeker?.skills || []).map(s => s.toLowerCase());
+    const weights = isTechnical 
+      ? { skills: 60, experience: 20, requirements: 20 }
+      : jobExperienceLevel === "senior" 
+      ? { skills: 40, experience: 40, requirements: 20 }
+      : { skills: 50, experience: 30, requirements: 20 };
+
+    const resumeSkills = resumeData.skills.map(normalizeSkill);
+    const seekerSkills = (seeker?.skills || []).map(normalizeSkill);
     const allSeekerSkills = Array.from(new Set([...resumeSkills, ...seekerSkills]));
     const resumeExperience = resumeData.experience;
     const seekerExperience = seeker?.experience || [];
 
     let score = 0;
 
-    // Skills match (50%)
-    const skillMatches = jobSkills.filter(skill => allSeekerSkills.some(s => s.includes(skill) || skill.includes(s))).length;
+    const skillMatches = jobSkills.filter(jobSkill => 
+      allSeekerSkills.some(seekerSkill => fuzzy.test(jobSkill, seekerSkill))
+    ).length;
     const skillScore = jobSkills.length > 0 ? (skillMatches / jobSkills.length) * 50 : 0;
-    score += skillScore;
+    score += skillScore * (weights.skills / 50);
 
-    // Experience match (30%)
     const totalExperienceYears = resumeExperience.reduce((sum, exp) => sum + exp.years, 0) +
       seekerExperience.reduce((sum, exp) => {
         const start = new Date(exp.startDate);
         const end = exp.endDate ? new Date(exp.endDate) : new Date();
         return sum + ((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365));
       }, 0);
-    const experienceMatch = jobExperienceLevel === "senior" && totalExperienceYears >= 5
-      ? 30
-      : jobExperienceLevel === "mid" && totalExperienceYears >= 2
-      ? 30
-      : jobExperienceLevel === "junior" && totalExperienceYears >= 0
-      ? 30
-      : totalExperienceYears >= 5 ? 20 : totalExperienceYears >= 2 ? 15 : 10;
-    score += experienceMatch;
+    const targetYears = jobExperienceLevel === "senior" ? 5 : jobExperienceLevel === "mid" ? 2 : 0;
+    const experienceMatch = Math.max(30 - Math.abs(totalExperienceYears - targetYears) * 5, 10);
+    score += experienceMatch * (weights.experience / 30);
 
-    // Requirements match (20%)
-    const requirementMatches = jobRequirements.filter(req =>
-      resumeExperience.some(exp => exp.title.toLowerCase().includes(req)) ||
-      seekerExperience.some(exp => exp.title.toLowerCase().includes(req))
-    ).length;
+    const requirementMatches = jobRequirements.filter(req => {
+      const resumeMatch = resumeExperience.some(exp => exp.title.toLowerCase().includes(req));
+      const seekerMatch = seekerExperience.some(exp => exp.title.toLowerCase().includes(req));
+      return resumeMatch || seekerMatch;
+    }).length;
     const requirementScore = jobRequirements.length > 0 ? (requirementMatches / jobRequirements.length) * 20 : 0;
-    score += requirementScore;
+    score += requirementScore * (weights.requirements / 20);
+
+    const irrelevantExperience = resumeExperience.some(exp => 
+      !jobRequirements.some(req => exp.title.toLowerCase().includes(req)) && 
+      !exp.title.toLowerCase().includes(jobContext) &&
+      !job.title.toLowerCase().includes(exp.title.toLowerCase())
+    );
+    score -= irrelevantExperience ? 10 : 0;
 
     return Math.min(Math.round(score), 100);
   } catch (error) {
@@ -144,14 +174,17 @@ async function calculateATSScore(job: schema.Job, application: schema.Applicatio
     return 0;
   }
 }
-
-
+// Skills normalization dictionary
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
   app.use(cors()); // Enable CORS
   // app.use(limiter); // Apply rate limiting
 
   setupAuth(app);
+
+  // Serve uploaded files statically
+  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
   // Jobs
   app.get("/api/jobs", async (req, res) => {
@@ -211,104 +244,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Applications
-  app.post("/api/jobs/:id/apply", upload.single("resume"), async (req, res) => {
-    if (!req.isAuthenticated() || !req.user || req.user.role !== "seeker") {
+  app.post(
+    "/api/jobs/:id/apply",
+    upload.single("resume"),
+    async (req: MulterRequest, res) => {
+      if (!req.isAuthenticated() || !req.user || req.user.role !== "seeker") {
         return res.sendStatus(403);
-    }
+      }
 
-    const jobId = Number(req.params.id);
-    if (isNaN(jobId)) {
+      const jobId = Number(req.params.id);
+      if (isNaN(jobId)) {
         return res.status(400).json({ message: "Invalid job ID" });
-    }
+      }
 
-    const job = await storage.getJobById(jobId);
-    if (!job) {
+      const job = await storage.getJobById(jobId);
+      if (!job) {
         return res.status(404).json({ message: "Job not found" });
-    }
+      }
 
-    if (!req.file) {
+      if (!req.file) {
         return res.status(400).json({ message: "Resume file is required" });
-    }
+      }
 
-    const { coverLetter } = req.body;
+      const { coverLetter } = req.body;
 
-    // Move file to a permanent location (e.g., uploads/resumes/)
-    const uploadDir = path.join(__dirname, "../uploads/resumes");
-    try {
-        // Ensure the directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
+      const uploadDir = path.join(__dirname, "../uploads/resumes");
+      console.log("Resolved uploadDir:", uploadDir);
 
-        const resumeFileName = `${req.user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
-        const resumePath = path.join(uploadDir, resumeFileName);
+      try {
+        await fs.access(uploadDir).catch(async () => {
+          console.log(`Directory ${uploadDir} does not exist, creating it...`);
+          await fs.mkdir(uploadDir, { recursive: true });
+          console.log(`Directory ${uploadDir} created successfully`);
+        });
+      } catch (error) {
+        console.error("Error ensuring upload directory exists:", error);
+        return res.status(500).json({ message: "Failed to ensure upload directory exists", error: String(error) });
+      }
 
-        // Move the file to the new location
+      const resumeFileName = `${req.user.id}-${Date.now()}${path.extname(req.file.originalname)}`;
+      const resumePath = path.join(uploadDir, resumeFileName);
+
+      try {
         await fs.rename(req.file.path, resumePath);
-
-        // Construct resume URL (adjust based on your server's setup)
         const resumeUrl = `/uploads/resumes/${resumeFileName}`;
 
         const parsed = insertApplicationSchema.safeParse({
-            jobId,
-            seekerId: req.user.id,
-            resumeUrl,
-            coverLetter: coverLetter || null,
-            status: "pending",
+          jobId,
+          seekerId: req.user.id,
+          resumeUrl,
+          coverLetter: coverLetter || null,
+          status: "pending",
         });
 
         if (!parsed.success) {
-            await fs.unlink(resumePath); // Clean up file on validation failure
-            return res.status(400).json(parsed.error);
+          await fs.unlink(resumePath);
+          return res.status(400).json(parsed.error);
         }
 
+        const atsScore = await calculateATSScore(job, { ...parsed.data, seekerId: req.user.id });
         const application = await storage.createApplication({
-            ...parsed.data,
-            appliedAt: new Date(),
-            interviewDate: null,
+          ...parsed.data,
+          appliedAt: new Date(),
+          interviewDate: null,
+          atsScore, // Store ATS score on creation
         });
 
         res.status(201).json(application);
-    } catch (error) {
+      } catch (error) {
         console.error("Error submitting application:", error);
-        if (req.file) {
-            await fs.unlink(req.file.path); // Clean up the temporary file on error
+        try {
+          await fs.unlink(resumePath);
+        } catch (unlinkError) {
+          console.error("Error cleaning up file:", unlinkError);
         }
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: "Internal Server Error", error: String(error) });
+      } finally {
+        if (req.file && await fs.access(req.file.path).then(() => true).catch(() => false)) {
+          try {
+            await fs.unlink(req.file.path);
+          } catch (unlinkError) {
+            console.error("Error cleaning up temporary file:", unlinkError);
+          }
+        }
+      }
     }
-});
+  );
 
-
-app.get("/api/applications/employer", async (req, res) => {
-  if (!req.isAuthenticated() || req.user.role !== "employer") {
-    return res.sendStatus(403);
-  }
-
-  const { jobId } = req.query;
-
-  try {
-    let applications = await storage.getApplicationsByEmployer(req.user.id);
-
-    if (jobId) {
-      applications = applications.filter((app) => app.jobId === Number(jobId));
-    }
-
-    const job = jobId ? await storage.getJobById(Number(jobId)) : null;
-    if (job) {
-      const scoredApplications = await Promise.all(
-        applications.map(async (app) => ({
-          ...app,
-          atsScore: await calculateATSScore(job, app),
-        }))
-      );
-      // Filter applications with ATS score >= 75
-      applications = scoredApplications.filter(app => app.atsScore >= 10);
+  app.get("/api/applications/employer", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== "employer") {
+      return res.sendStatus(403);
     }
 
-    res.json(applications);
-  } catch (error) {
-    console.error("Error fetching applications:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+    const { jobId } = req.query;
+
+    try {
+      let applications = await storage.getApplicationsByEmployer(req.user.id);
+
+      if (jobId) {
+        applications = applications.filter((app) => app.jobId === Number(jobId));
+      }
+
+      const job = jobId ? await storage.getJobById(Number(jobId)) : null;
+      if (job) {
+        const scoredApplications = await Promise.all(
+          applications.map(async (app) => ({
+            ...app,
+            atsScore: app.atsScore ?? await calculateATSScore(job, app), // Use cached score if available
+          }))
+        );
+        applications = scoredApplications.filter(app => app.atsScore >= 20);
+      }
+
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
   app.get("/api/applications/seeker", async (req, res) => {
     if (!req.isAuthenticated() || !req.user || req.user.role !== "seeker") {
       return res.sendStatus(403);
