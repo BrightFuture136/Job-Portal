@@ -1,106 +1,198 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
   useQuery,
   useMutation,
-  UseMutationResult,
+  useQueryClient,
+  UseQueryResult,
+  UseMutateFunction,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import axios, { AxiosError } from "axios";
+import { toast } from "sonner"; // Import sonner
 
-type AuthContextType = {
-  user: SelectUser | null;
+interface User {
+  id: number;
+  email: string;
+  role: string;
+  username: string;
+}
+
+interface AuthContextType {
+  user: User | null;
   isLoading: boolean;
-  error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
-  logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  loginMutation: {
+    mutate: UseMutateFunction<
+      User,
+      AxiosError<{ message: string }>,
+      { email: string; password: string },
+      unknown
+    >;
+    isPending: boolean;
+    isError: boolean;
+    error: AxiosError<{ message: string }> | null;
+  };
+  registerMutation: {
+    mutate: UseMutateFunction<
+      User,
+      AxiosError<{ message: string }>,
+      {
+        email: string;
+        password: string;
+        role: string;
+        username: string;
+        phone?: string;
+        companyName?: string;
+      },
+      unknown
+    >;
+    isPending: boolean;
+    isError: boolean;
+    error: AxiosError<{ message: string }> | null;
+  };
+  logoutMutation: {
+    mutate: UseMutateFunction<
+      void,
+      AxiosError<{ message: string }>,
+      void,
+      unknown
+    >;
+    isPending: boolean;
+    isError: boolean;
+    error: AxiosError<{ message: string }> | null;
+  };
+}
+const getTimeBasedGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return "Good Morning";
+  } else if (hour >= 12 && hour < 17) {
+    return "Good Afternoon";
+  } else if (hour >= 17 && hour < 22) {
+    return "Good Evening";
+  } else {
+    return "Hello"; // Neutral greeting for late night/early morning
+  }
 };
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-type LoginData = Pick<InsertUser, "email" | "password">;
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
-export const AuthContext = createContext<AuthContextType | null>(null);
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
-    queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-  });
+  useEffect(() => {
+    axios
+      .get<{ csrfToken: string }>("/api/csrf-token")
+      .then((res) => {
+        setCsrfToken(res.data.csrfToken);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch CSRF token:", error);
+      });
+  }, []);
+
+  const { data: user, isLoading }: UseQueryResult<User | null, AxiosError> =
+    useQuery({
+      queryKey: ["user"],
+      queryFn: async () => {
+        const res = await axios.get<User>("/api/user");
+        return res.data;
+      },
+      retry: false,
+    });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
+      if (!csrfToken) throw new Error("CSRF token not available");
+      const res = await axios.post<User>(
+        "/api/login",
+        { email, password },
+        { headers: { "X-CSRF-Token": csrfToken } }
+      );
+      return res.data;
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user"], data);
+      toast.success("Login successful!", {
+        description: `${getTimeBasedGreeting()}, ${data.username}`,
       });
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error("Login failed", {
+        description:
+          error.response?.data?.message || "Please check your credentials.",
+      });
+      throw new Error(error.response?.data?.message || "Login failed");
     },
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
+    mutationFn: async (data: {
+      email: string;
+      password: string;
+      role: string;
+      username: string;
+      phone?: string;
+      companyName?: string;
+    }) => {
+      if (!csrfToken) throw new Error("CSRF token not available");
+      const res = await axios.post<User>("/api/register", data, {
+        headers: { "X-CSRF-Token": csrfToken },
       });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user"], data);
+      toast.success("Registration successful!", {
+        description: `Account created for ${data.email}. Please log in.`,
+      });
+    },
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error("Registration failed", {
+        description: error.response?.data?.message || "Something went wrong.",
+      });
+      throw new Error(error.response?.data?.message || "Registration failed");
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      if (!csrfToken) throw new Error("CSRF token not available");
+      await axios.post(
+        "/api/logout",
+        {},
+        { headers: { "X-CSRF-Token": csrfToken } }
+      );
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.removeQueries({ queryKey: ["user"] });
+      toast.success("Logged out successfully");
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
+    onError: (error: AxiosError<{ message: string }>) => {
+      toast.error("Logout failed", {
+        description: error.response?.data?.message || "Something went wrong.",
       });
+      throw new Error(error.response?.data?.message || "Logout failed");
     },
   });
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user: user ?? null,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextType = {
+    user: user || null,
+    isLoading,
+    loginMutation,
+    registerMutation,
+    logoutMutation,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 }

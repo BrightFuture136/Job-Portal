@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { toast, Toaster } from "sonner";
 import { useState, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -37,7 +37,6 @@ interface JobCardProps {
 
 export function JobCard({ job }: JobCardProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
@@ -85,10 +84,8 @@ export function JobCard({ job }: JobCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs"] });
     },
     onError: () => {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to record view.",
-        variant: "destructive",
       });
     },
   });
@@ -120,19 +117,17 @@ export function JobCard({ job }: JobCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications/seeker"] });
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been sent to the employer.",
+      toast.success("Application Submitted", {
+        description: "Your application has been successfully submitted.",
       });
       setApplyOpen(false);
       setCoverLetter("");
       setResumeFile(null);
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit application.",
-        variant: "destructive",
+      toast.error("Error", {
+        // description: error.message || "Failed to submit application.",
+        description: "Failed to submit the application. Please try again.",
       });
     },
   });

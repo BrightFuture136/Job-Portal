@@ -1,4 +1,3 @@
-// Applications.tsx
 import { useEffect, useState } from "react";
 import { Navigation } from "@/components/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,6 +48,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Job } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Slider } from "@/components/ui/slider"; // Import Slider component
 
 interface Application {
   job: Job;
@@ -63,7 +63,7 @@ interface Application {
   jobTitle: string;
   interviewDate?: string;
   phoneNum?: string;
-  atsScore: number; // Required since backend filters by ATS
+  atsScore: number;
 }
 
 export default function Applications() {
@@ -82,6 +82,7 @@ export default function Applications() {
   const [interviewDate, setInterviewDate] = useState<Date | undefined>(
     undefined
   );
+  const [atsThreshold, setAtsThreshold] = useState(75); // Dynamic ATS threshold
 
   const queryClient = useQueryClient();
 
@@ -118,13 +119,15 @@ export default function Applications() {
   const getJobTitle = (jobId: number) =>
     jobs?.find((job) => job.id === jobId)?.title || "Unknown Job";
 
+  // Filter applications based on dynamic ATS threshold
   const filteredApplications = applications?.filter((application) => {
     const matchesSearch = application.seekerName
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || application.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const meetsAtsThreshold = application.atsScore >= atsThreshold; // Dynamic threshold
+    return matchesSearch && matchesStatus && meetsAtsThreshold;
   });
 
   const paginatedApplications = filteredApplications?.slice(
@@ -271,7 +274,7 @@ export default function Applications() {
             <span className="text-indigo-600">{jobTitle}</span>
           </h1>
           <p className="mt-2">
-            Showing applicants who passed ATS resume screening (Score ≥ 75)
+            Showing applicants with ATS score ≥ {atsThreshold}
           </p>
         </div>
 
@@ -295,6 +298,19 @@ export default function Applications() {
               <SelectItem value="hired">Hired</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex flex-col gap-2 w-full sm:w-64">
+            <label className="text-sm font-medium text-gray-700">
+              ATS Score Threshold: {atsThreshold}
+            </label>
+            <Slider
+              value={[atsThreshold]}
+              onValueChange={(value) => setAtsThreshold(value[0])}
+              min={0}
+              max={100}
+              step={10}
+              className="w-full"
+            />
+          </div>
         </div>
 
         {selectedApplications.length > 0 && (
@@ -318,10 +334,10 @@ export default function Applications() {
         {!filteredApplications || filteredApplications.length === 0 ? (
           <Card className="shadow-lg border-none">
             <CardContent className="py-12 text-center">
-              No applications passed ATS screening (Score ≥ 75).
+              No applications meet the ATS threshold of {atsThreshold}.
               <p className="">
-                To see all the applicants with out ATS score got to candidates
-                page.
+                Adjust the threshold or go to the candidates page to see all
+                applicants without ATS filtering.
               </p>
             </CardContent>
           </Card>

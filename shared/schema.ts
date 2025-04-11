@@ -7,7 +7,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["seeker", "employer"] }).notNull(),
+  role: text("role", { enum: ["seeker", "employer","admin"] }).notNull(),
   companyName: text("company_name"),
   bio: text("bio"),
   location: text("location"),
@@ -36,6 +36,15 @@ export const users = pgTable("users", {
   benefits: text("benefits"),
   culture: text("culture"),
   phone: text("phone"),
+  logoUrl: text("logo_url"), 
+  profileImageUrl: text("profile_url"),
+  officePhotos: text("office_photos").array(),
+  newApplicationsNotification: boolean("new_applications_notification").default(false),
+  emailDigestNotification: boolean("email_digest_notification").default(false),
+  currentPlan: text("current_plan", { enum: ["free", "professional", "enterprise"] }).default("free"),
+  planPrice: integer("plan_price").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+
 });
 
 export const jobs = pgTable("jobs", {
@@ -125,6 +134,21 @@ export const emailNotifications = pgTable("email_notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// @shared/schema.ts
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  plan: text("plan", { enum: ["free", "professional", "enterprise"] }).notNull(),
+  price: integer("price").notNull(), // In cents
+  screenshotUrl: text("screenshot_url"),
+  status: text("status", { enum: ["pending", "active", "rejected"] }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  username: text("username").notNull().references(() => users.username),
+  email: text("email").notNull().references(() => users.email),
+});
+
+
 export const insertUserSchema = createInsertSchema(users, {
   education: z.array(z.object({
     school: z.string(),
@@ -148,7 +172,7 @@ export type ApplicationWithDetails = Application & {
   phoneNum?:string;
 };
 
-
+// export const insertSubscriptionSchema = createInsertSchema(subscriptions);
 export const insertJobSchema = createInsertSchema(jobs);
 export const insertApplicationSchema = createInsertSchema(applications);
 export const insertCompanyReviewSchema = createInsertSchema(companyReviews);
@@ -167,3 +191,4 @@ export type Application = typeof applications.$inferSelect;
 export type CompanyReview = typeof companyReviews.$inferSelect;
 export type JobAlert = typeof jobAlerts.$inferSelect;
 export type EmailNotification = typeof emailNotifications.$inferSelect;
+// export type Subscription = typeof subscriptions.$inferSelect;

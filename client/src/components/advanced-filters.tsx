@@ -1,25 +1,19 @@
-import { 
+// AdvancedFilters.tsx
+import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Filter, Save } from "lucide-react"
-import { useState } from "react"
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Filter, Save, RotateCcw } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
 
 export type FilterValues = {
   keyword: string;
@@ -29,7 +23,7 @@ export type FilterValues = {
   salaryMin: number;
   salaryMax: number;
   remote: boolean;
-}
+};
 
 interface AdvancedFiltersProps {
   filters: FilterValues;
@@ -37,9 +31,43 @@ interface AdvancedFiltersProps {
   onSaveSearch: (name: string) => void;
 }
 
-export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFiltersProps) {
+const defaultFilters: FilterValues = {
+  keyword: "",
+  location: "",
+  type: null,
+  experienceLevel: null,
+  salaryMin: 0,
+  salaryMax: 200000,
+  remote: false,
+};
+
+export function AdvancedFilters({
+  filters,
+  onChange,
+  onSaveSearch,
+}: AdvancedFiltersProps) {
   const [isNaming, setIsNaming] = useState(false);
   const [searchName, setSearchName] = useState("");
+  const [localFilters, setLocalFilters] = useState(filters);
+
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters]);
+
+  const handleFilterChange = useCallback(
+    (newFilters: Partial<FilterValues>) => {
+      const updatedFilters = { ...localFilters, ...newFilters };
+      setLocalFilters(updatedFilters);
+      const timer = setTimeout(() => onChange(updatedFilters), 100);
+      return () => clearTimeout(timer);
+    },
+    [localFilters, onChange]
+  );
+
+  const handleResetFilters = useCallback(() => {
+    setLocalFilters(defaultFilters);
+    onChange(defaultFilters);
+  }, [onChange]);
 
   return (
     <Sheet>
@@ -49,7 +77,7 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
           Advanced Filters
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="w-[400px] sm:w-[540px]">
         <SheetHeader>
           <SheetTitle>Advanced Search</SheetTitle>
           <SheetDescription>
@@ -57,13 +85,13 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="max-h-[calc(100vh-150px)] overflow-y-auto py-4 space-y-6">
           <div className="space-y-2">
             <Label>Keywords</Label>
             <Input
               placeholder="Job title, skills, or company"
-              value={filters.keyword}
-              onChange={(e) => onChange({ ...filters, keyword: e.target.value })}
+              value={localFilters.keyword ?? ""}
+              onChange={(e) => handleFilterChange({ keyword: e.target.value })}
             />
           </div>
 
@@ -71,62 +99,69 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
             <Label>Location</Label>
             <Input
               placeholder="City, state, or remote"
-              value={filters.location}
-              onChange={(e) => onChange({ ...filters, location: e.target.value })}
+              value={localFilters.location ?? ""}
+              onChange={(e) => handleFilterChange({ location: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Job Type</Label>
-            <Select
-              value={filters.type || "all"}
-              onValueChange={(value) => onChange({ ...filters, type: value === "all" ? null : value })}
+            <select
+              value={localFilters.type ?? "all"}
+              onChange={(e) =>
+                handleFilterChange({
+                  type: e.target.value === "all" ? null : e.target.value,
+                })
+              }
+              className="w-full border rounded p-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select job type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="full-time">Full-time</SelectItem>
-                <SelectItem value="part-time">Part-time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="all">All Types</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="internship">Internship</option>
+            </select>
           </div>
 
           <div className="space-y-2">
             <Label>Experience Level</Label>
-            <Select
-              value={filters.experienceLevel || "all"}
-              onValueChange={(value) => onChange({ ...filters, experienceLevel: value === "all" ? null : value })}
+            <select
+              value={localFilters.experienceLevel ?? "all"}
+              onChange={(e) =>
+                handleFilterChange({
+                  experienceLevel:
+                    e.target.value === "all" ? null : e.target.value,
+                })
+              }
+              className="w-full border rounded p-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select experience level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Any Level</SelectItem>
-                <SelectItem value="entry">Entry Level</SelectItem>
-                <SelectItem value="mid">Mid Level</SelectItem>
-                <SelectItem value="senior">Senior Level</SelectItem>
-                <SelectItem value="executive">Executive</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="all">Any Level</option>
+              <option value="entry">Entry Level</option>
+              <option value="mid">Mid Level</option>
+              <option value="senior">Senior Level</option>
+              <option value="executive">Executive</option>
+            </select>
           </div>
 
           <div className="space-y-2">
             <Label>Salary Range (Annual)</Label>
             <div className="pt-2">
               <Slider
-                defaultValue={[filters.salaryMin, filters.salaryMax]}
+                value={[
+                  localFilters.salaryMin ?? 0,
+                  localFilters.salaryMax ?? 200000,
+                ]}
                 max={200000}
                 step={5000}
-                onValueChange={([min, max]) => 
-                  onChange({ ...filters, salaryMin: min, salaryMax: max })}
+                onValueChange={([min, max]) =>
+                  handleFilterChange({ salaryMin: min, salaryMax: max })
+                }
               />
-              <div className="flex justify-between text-sm text-muted-foreground mt-1">
-                <span>${filters.salaryMin.toLocaleString()}</span>
-                <span>${filters.salaryMax.toLocaleString()}</span>
+              <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                <span>${(localFilters.salaryMin ?? 0).toLocaleString()}</span>
+                <span>
+                  ${(localFilters.salaryMax ?? 200000).toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -134,13 +169,23 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
           <div className="flex items-center justify-between">
             <Label>Remote Only</Label>
             <Switch
-              checked={filters.remote}
-              onCheckedChange={(checked) => 
-                onChange({ ...filters, remote: checked })}
+              checked={localFilters.remote ?? false}
+              onCheckedChange={(checked) =>
+                handleFilterChange({ remote: checked })
+              }
             />
           </div>
 
-          <div className="pt-4">
+          <div className="space-y-4 pt-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleResetFilters}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset Filters
+            </Button>
+
             {isNaming ? (
               <div className="space-y-2">
                 <Input
@@ -149,7 +194,7 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
                   onChange={(e) => setSearchName(e.target.value)}
                 />
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={() => {
                       onSaveSearch(searchName);
                       setIsNaming(false);
@@ -159,7 +204,7 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
                   >
                     Save Search
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => {
                       setIsNaming(false);
@@ -184,5 +229,5 @@ export function AdvancedFilters({ filters, onChange, onSaveSearch }: AdvancedFil
         </div>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

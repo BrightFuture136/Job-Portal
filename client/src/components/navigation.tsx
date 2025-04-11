@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -12,6 +12,14 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   LayoutDashboard,
   BriefcaseIcon,
   Users,
@@ -22,18 +30,18 @@ import {
   UserCircle,
   MessageSquare,
   Menu,
-  X,
+  LogOut,
+  CreditCard, // Added for subscriptions
 } from "lucide-react";
 import { ResponsiveContainer } from "./ResponsiveContainer";
-import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Navigation() {
   const { user, logoutMutation } = useAuth();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
 
-  // Close mobile menu on window resize (if switching to desktop)
   useEffect(() => {
     if (!isMobile) {
       setMobileMenuOpen(false);
@@ -42,8 +50,8 @@ export function Navigation() {
 
   if (!user) return null;
 
-  // Navigation items
-  const navItems = [
+  // Define nav items for seekers and employers
+  const standardNavItems = [
     {
       href: "/",
       label: "Dashboard",
@@ -72,8 +80,7 @@ export function Navigation() {
       icon: <MessageSquare className="w-4 h-4 mr-2" />,
     },
     {
-      href:
-        user.role === "employer" ? "/employer/Branding" : "",
+      href: user.role === "employer" ? "/employer/branding" : "",
       label: user.role === "employer" ? "Branding" : "",
       icon:
         user.role === "employer" ? <Building2 className="w-4 h-4 mr-2" /> : "",
@@ -87,11 +94,24 @@ export function Navigation() {
     },
   ];
 
-  const renderNavItems = () => {
-    return navItems.map((item, index) => (
+  // Define nav items for admins
+  const adminNavItems = [
+    {
+      href: "/admin/subscriptions",
+      label: "Subscriptions",
+      icon: <CreditCard className="w-4 h-4 mr-2" />,
+    },
+  ];
+
+  const renderNavItems = (items: typeof standardNavItems) => {
+    return items.map((item, index) => (
       <NavigationMenuItem key={index}>
         <Link href={item.href}>
-          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+          <NavigationMenuLink
+            className={`${navigationMenuTriggerStyle()} ${
+              location === item.href ? "bg-accent" : ""
+            }`}
+          >
             <div className="flex items-center">
               {item.icon}
               {item.label}
@@ -102,8 +122,8 @@ export function Navigation() {
     ));
   };
 
-  const renderMobileNavItems = () => {
-    return navItems.map((item, index) => (
+  const renderMobileNavItems = (items: typeof standardNavItems) => {
+    return items.map((item, index) => (
       <Link key={index} href={item.href}>
         <Button
           variant="ghost"
@@ -119,13 +139,17 @@ export function Navigation() {
     ));
   };
 
+  // Determine which navbar to render based on role
+  const isAdmin = user.role === "admin";
+  const navItems = isAdmin ? adminNavItems : standardNavItems;
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <ResponsiveContainer>
         <div className="flex h-16 items-center justify-between">
           {/* Logo and company name */}
           <div className="flex items-center">
-            <Link href="/">
+            <Link href={isAdmin ? "/admin/subscriptions" : "/"}>
               <div className="flex items-center space-x-2">
                 <Building2 className="w-6 h-6" />
                 <span className="font-bold text-xl">DreamJobs</span>
@@ -137,32 +161,38 @@ export function Navigation() {
           {!isMobile && (
             <div className="flex-1 flex justify-center">
               <NavigationMenu>
-                <NavigationMenuList>{renderNavItems()}</NavigationMenuList>
+                <NavigationMenuList>
+                  {renderNavItems(navItems)}
+                </NavigationMenuList>
               </NavigationMenu>
             </div>
           )}
 
-          {/* Right side - theme toggle, notifications, profile, logout */}
+          {/* Right side - theme toggle, user info, logout */}
           <div className="flex items-center space-x-2">
             <ThemeToggle />
 
-            <Button variant="ghost" size="icon">
-              <Bell className="w-5 h-5" />
-            </Button>
-
-            <Button variant="ghost" size="icon">
-              <UserCircle className="w-5 h-5" />
-            </Button>
-
-            {!isMobile && (
-              <Button
-                variant="ghost"
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
-              >
-                Logout
-              </Button>
-            )}
+            {/* Display logged-in user's name */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2">
+                  <UserCircle className="w-5 h-5" />
+                  <span className="hidden md:inline">{user.username}</span>{" "}
+                  {/* Display username */}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Mobile and tablet menu */}
             {isMobile && (
@@ -182,16 +212,9 @@ export function Navigation() {
                         <Building2 className="w-6 h-6" />
                         <span className="font-bold text-xl">DreamJobs</span>
                       </div>
-                      {/* <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <X className="w-5 h-5" />
-                      </Button> */}
                     </div>
                     <div className="space-y-1">
-                      {renderMobileNavItems()}
+                      {renderMobileNavItems(navItems)}
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-left mt-4"
@@ -202,6 +225,7 @@ export function Navigation() {
                         disabled={logoutMutation.isPending}
                       >
                         <div className="flex items-center">
+                          <LogOut className="w-4 h-4 mr-2" />
                           <span className="ml-2">Logout</span>
                         </div>
                       </Button>

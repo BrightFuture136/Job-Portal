@@ -25,10 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Briefcase, Building2, MapPin, User, Mail, Phone } from "lucide-react";
 import { useState } from "react";
+import { toast, Toaster } from "sonner";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   // Schema definitions
   const emailSchema = z.string().email({ message: "Invalid email address" });
@@ -50,7 +52,6 @@ export default function AuthPage() {
       message: "Password must contain at least one special character",
     });
 
-  // Modified schema to make phone optional and only required for seekers
   const registerSchema = insertUserSchema
     .extend({
       email: emailSchema,
@@ -137,7 +138,36 @@ export default function AuthPage() {
     },
   });
 
+  // Modified handlers
+  const handleLoginSubmit = (data: { email: string; password: string }) => {
+    // console.log("Login submitted:", data); // Debug
+    loginMutation.mutate(data);
+  };
+
+  const handleRegisterSubmit = (data: any) => {
+    // console.log("Register submitted:", data); // Debug
+    if (passwordStrength.score < 2) {
+      toast.info("Weak password", {
+        description:
+          "Please use a stronger password (minimum strength: Medium)",
+      });
+      return;
+    }
+    const validatedData = {
+      ...data,
+      role: data.role as "seeker" | "employer" | "admin",
+    };
+    registerMutation.mutate(validatedData);
+  };
+
   if (user) {
+    if (user.role === "admin") {
+      return <Redirect to="/admin/subscriptions" />;
+    } else if (user.role === "employer") {
+      return <Redirect to="/employer/applications" />;
+    } else if (user.role === "seeker") {
+      return <Redirect to="/seeker/jobs" />;
+    }
     return <Redirect to="/" />;
   }
 
@@ -171,48 +201,56 @@ export default function AuthPage() {
                 value="login"
                 className="animate-in slide-in-from-left-5 duration-300"
               >
-                <form
-                  onSubmit={loginForm.handleSubmit((data) =>
-                    loginMutation.mutate(data)
-                  )}
-                >
-                  <div className="space-y-4">
-                    <div className="space-y-2 group">
-                      <Label
-                        htmlFor="email"
-                        className="transition-colors duration-300 group-hover:text-primary"
-                      >
-                        Email
-                      </Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-                        <Input
-                          id="email"
-                          type="email"
-                          className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary"
-                          {...loginForm.register("email")}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2 group">
-                      <Label
-                        htmlFor="password"
-                        className="transition-colors duration-300 group-hover:text-primary"
-                      >
-                        Password
-                      </Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-                        <Input
-                          id="password"
-                          type="password"
-                          className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary"
-                          {...loginForm.register("password")}
-                          required
-                        />
-                      </div>
-                    </div>
+                {/* Modified login form */}
+                <Form {...loginForm}>
+                  <form
+                    onSubmit={loginForm.handleSubmit(handleLoginSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={loginForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem className="group">
+                          <Label className="transition-colors duration-300 group-hover:text-primary">
+                            Email
+                          </Label>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                              <Input
+                                className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary"
+                                type="email"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={loginForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem className="group">
+                          <Label className="transition-colors duration-300 group-hover:text-primary">
+                            Password
+                          </Label>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                              <Input
+                                className="pl-10 transition-all duration-300 focus:ring-2 focus:ring-primary"
+                                type="password"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <Button
                       type="submit"
                       className="w-full transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
@@ -244,8 +282,8 @@ export default function AuthPage() {
                         "Login"
                       )}
                     </Button>
-                  </div>
-                </form>
+                  </form>
+                </Form>
               </TabsContent>
 
               <TabsContent
@@ -254,14 +292,7 @@ export default function AuthPage() {
               >
                 <Form {...registerForm}>
                   <form
-                    onSubmit={registerForm.handleSubmit((data) => {
-                      if (passwordStrength.score < 2) return;
-                      const validatedData = {
-                        ...data,
-                        role: data.role as "seeker" | "employer",
-                      };
-                      registerMutation.mutate(validatedData);
-                    })}
+                    onSubmit={registerForm.handleSubmit(handleRegisterSubmit)}
                     className="space-y-4"
                   >
                     <FormField
@@ -294,12 +325,30 @@ export default function AuthPage() {
                               >
                                 Employer
                               </SelectItem>
+                              {isAdminMode && (
+                                <SelectItem
+                                  value="admin"
+                                  className="hover:bg-primary/10 transition-colors duration-200"
+                                >
+                                  Admin
+                                </SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <div className="space-y-2">
+                      <Label>Admin Secret (optional)</Label>
+                      <Input
+                        type="password"
+                        placeholder="Enter admin secret"
+                        onChange={(e) =>
+                          setIsAdminMode(e.target.value === "admin-secret-123")
+                        }
+                      />
+                    </div>
                     <FormField
                       control={registerForm.control}
                       name="email"
@@ -418,7 +467,6 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-
                     {registerForm.watch("role") === "seeker" && (
                       <FormField
                         control={registerForm.control}

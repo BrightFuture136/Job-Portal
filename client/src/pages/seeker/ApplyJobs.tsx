@@ -14,14 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { toast, Toaster } from "sonner";
 import { useLocation, useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navigation } from "@/components/navigation";
 
 export default function ApplyJob() {
-  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { user } = useAuth(); // Get the logged-in user
   const { jobId } = useParams(); // Get the job ID from the URL
@@ -38,23 +37,22 @@ export default function ApplyJob() {
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/jobs/:id/apply", data);
+      console.log("Mutation called with data:", data); // Debug
+      const res = await apiRequest("POST", `/api/jobs/${jobId}/apply`, data); // Fix URL
       return res.json();
     },
     onSuccess: () => {
+      console.log("Mutation succeeded"); // Debug
       queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
-      toast({
-        title: "Application Submitted",
+      toast.success("Application Submitted ", {
         description: "Your application has been successfully submitted.",
       });
-      setLocation("/seeker/applications");
+      setTimeout(() => setLocation("/seeker/jobs"), 1500); // Delay redirect
     },
     onError: (error) => {
-      console.error("Mutation Error:", error);
-      toast({
-        title: "Error",
+      console.error("Mutation Error:", error); // Already present
+      toast.error("Error", {
         description: "Failed to submit the application. Please try again.",
-        variant: "destructive",
       });
     },
   });
@@ -73,10 +71,8 @@ export default function ApplyJob() {
               <form
                 onSubmit={form.handleSubmit((data) => {
                   if (!user) {
-                    toast({
-                      title: "Error",
+                    toast.error("Error", {
                       description: "You must be logged in to apply for a job.",
-                      variant: "destructive",
                     });
                     return;
                   }

@@ -29,7 +29,7 @@ export interface IStorage {
   getApplicationById(id: number): Promise<Application | undefined>;
   getApplicationWithDetails(id: number): Promise<ApplicationWithDetails>,
   getAcceptedApplicationsByEmployer(employerId: number): Promise<ApplicationWithDetails[]>,
-
+  updateUserProfile(userId: number, updates: Partial<schema.User>): Promise<schema.User>
   sessionStore: session.Store;
 }
 
@@ -69,9 +69,20 @@ export class PostgresStorage implements IStorage {
   }
   
 
-  async getJobs(): Promise<Job[]> {
-    // Fetch all jobs
-    const jobs = await db.select().from(schema.jobs);
+  async getJobs(employerId?: number): Promise<Job[]> {
+    // Start with a base query
+    let query = db.select().from(schema.jobs);
+  
+    // If an employerId is provided, filter jobs by that employer
+    if (employerId !== undefined) {
+      query = query.where(eq(schema.jobs.employerId, employerId)) as typeof query;
+    }
+  
+    // Sort jobs by creation date in descending order
+    query = query.orderBy(sql`${schema.jobs.createdAt} DESC`) as typeof query;
+  
+    // Execute the query
+    const jobs = await query;
   
     // For each job, calculate the total views and applicants count
     const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
@@ -98,7 +109,6 @@ export class PostgresStorage implements IStorage {
   
     return jobsWithCounts;
   }
-
   async getJobById(id: number): Promise<Job | undefined> {
     const result = await db.select().from(schema.jobs).where(eq(schema.jobs.id, id)).limit(1);
     return result[0];
@@ -187,6 +197,16 @@ export class PostgresStorage implements IStorage {
   async getAcceptedApplicationsByEmployer(employerId: number): Promise<ApplicationWithDetails[]> {
     const allApps = await this.getApplicationsByEmployer(employerId);
     return allApps.filter(app => app.status === "accepted");
+  }
+
+  async updateUserProfile(userId: number, updates: Partial<schema.User>): Promise<schema.User> {
+    const result = await db
+      .update(schema.users)
+      .set(updates)
+      .where(eq(schema.users.id, userId))
+      .returning();
+    if (!result[0]) throw new Error("User not found");
+    return result[0];
   }
 }
 
